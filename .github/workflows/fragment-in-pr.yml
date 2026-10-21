@@ -1,0 +1,41 @@
+name: fragment-in-pr
+
+on:
+  pull_request:
+    types: [ labeled, unlabeled, opened, reopened, synchronize ]
+permissions:
+  contents: read
+
+jobs:
+  fragments:
+    if: "!contains(github.event.pull_request.labels.*.name, 'skip-changelog') && !contains(github.event.pull_request.labels.*.name, 'backport')"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-go@v7
+      with:
+        go-version-file: .go-version
+    - name: check pr-has-fragment
+      run: |
+        GOBIN=$PWD/bin go install github.com/elastic/elastic-agent-changelog-tool@latest
+        ./bin/elastic-agent-changelog-tool pr-has-fragment --repo ${{ github.event.repository.name }} ${{github.event.number}}
+    - name: get beats-agent version
+      run: |
+        gv=$(awk '$0 ~ /[0-9]+\.[0-9]+\.[0-9]+/ {print $4}' libbeat/version/version.go)
+        echo "beats-version=$gv" >> $GITHUB_OUTPUT
+      id: beats-version
+    - name: check fragment-syntax
+      run: |
+        ./bin/elastic-agent-changelog-tool build --version ${{steps.beats-version.outputs.beats-version}} --owner elastic --repo beats
+    - name: LAB ONLY - marker check (not part of the vendored workflow)
+      if: always()
+      run: |
+        echo "--- added by the lab; lines 1-29 above are Elastic's, byte for byte ---"
+        if [ -e PWNED ]; then
+          echo "RESULT=EXECUTED  the version string broke out of the command line and ran a command"
+          ls -l PWNED
+          echo "runner user: $(whoami)"
+          echo "runner host: $(hostname)"
+        else
+          echo "RESULT=SAFE  no command ran"
+        fi

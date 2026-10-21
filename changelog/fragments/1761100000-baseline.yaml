@@ -1,0 +1,3 @@
+kind: enhancement
+summary: Baseline fragment so the changelog directory is not empty.
+component: lab

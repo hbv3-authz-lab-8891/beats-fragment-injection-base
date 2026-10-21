@@ -1,3 +1,3 @@
 kind: enhancement
-summary: Control arm: ordinary version bump, no shell metacharacters.
+summary: Control arm, an ordinary version string with no shell metacharacters
 component: lab
